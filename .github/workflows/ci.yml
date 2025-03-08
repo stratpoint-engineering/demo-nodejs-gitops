@@ -24,8 +24,8 @@ jobs:
       dockerfile-path: "./Dockerfile"
       tags: type=sha,format=short
     secrets:
-      REGISTRY_USERNAME: ${{ secrets.GITHUB_ACTOR }}
-      REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTY_PASSWORD }}
 
   deploy-trigger:
     needs: docker
