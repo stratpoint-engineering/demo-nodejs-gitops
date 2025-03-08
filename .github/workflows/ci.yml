@@ -16,7 +16,7 @@ jobs:
   #     coverage-threshold: 80
 
   docker:
-    needs: quality
+    # needs: quality
     if: github.ref == 'refs/heads/main'
     uses: stratpoint-engineering/shared-workflows/.github/workflows/docker.yml@v1.0.0
     with:
