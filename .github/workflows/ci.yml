@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # quality:
   #   uses: stratpoint-engineering/shared-workflows/.github/workflows/node-base.yml@v1.0.0
