@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  get-commit-info:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      image-tag: ${{ steps.commit.outputs.image-tag }}
+
+    steps:
+      - name: Get commit SHA
+        id: commit
+        run: |
+          echo "sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          echo "image-tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+  deploy-staging:
+    needs: get-commit-info
+    uses: stratpoint-engineering/shared-workflows/.github/workflows/gitops-deployment.yml@v1.0.0
+    with:
+      manifests-repo: "stratpoint-engineering/k8s-manifests"
+      app-path: "apps/demo-nodejs-gitops"
+      image-name: "ghcr.io/stratpoint-engineering/demo-nodejs-gitops"
+      image-tag: ${{ needs.get-commit-info.outputs.image-tag }}
+      env: "staging"
+      pr-based: false # Direct commit for staging
+    secrets:
+      GIT_TOKEN: ${{ secrets.MANIFESTS_REPO_TOKEN }}
+
+  deploy-production:
+    needs: [get-commit-info, deploy-staging]
+    uses: stratpoint-engineering/shared-workflows/.github/workflows/gitops-deployment.yml@v1.0.0
+    with:
+      manifests-repo: "stratpoint-engineering/k8s-manifests"
+      app-path: "apps/demo-nodejs-gitops"
+      image-name: "ghcr.io/stratpoint-engineering/demo-nodejs-gitops"
+      image-tag: ${{ needs.get-commit-info.outputs.image-tag }}
+      env: "production"
+      pr-based: true # Create PR for production deployments
+    secrets:
+      GIT_TOKEN: ${{ secrets.MANIFESTS_REPO_TOKEN }}

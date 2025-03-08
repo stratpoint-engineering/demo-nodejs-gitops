@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    uses: stratpoint-engineering/shared-workflows/.github/workflows/node-base.yml@v1.0.0
+    with:
+      node-version: "20.x"
+      package-manager: "npm"
+      project-type: "backend"
+      coverage-threshold: 80
+
+  docker:
+    needs: quality
+    if: github.ref == 'refs/heads/main'
+    uses: stratpoint-engineering/shared-workflows/.github/workflows/docker.yml@v1.0.0
+    with:
+      image-name: "ghcr.io/stratpoint-engineering/demo-nodejs-gitops"
+      dockerfile-path: "./Dockerfile"
+      tags: type=sha,format=short
+    secrets:
+      REGISTRY_USERNAME: ${{ secrets.GITHUB_ACTOR }}
+      REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-trigger:
+    needs: docker
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Set image tag output
+        id: vars
+        run: |
+          IMAGE_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+    outputs:
+      image-tag: ${{ steps.vars.outputs.IMAGE_TAG }}
